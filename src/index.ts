@@ -20,6 +20,7 @@ const io = new Server(httpServer, {
 
 app.use(cors());
 app.use(express.json());
+app.get("/ping", (_req, res) => res.json({ pong: true }));
 app.use("/api/sessions", createSessionsRouter(io));
 
 // ── Socket.io connection handling ─────────────────────────────────────────────
