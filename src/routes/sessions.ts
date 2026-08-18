@@ -141,7 +141,6 @@ export const createSessionsRouter = (io: Server): Router => {
 
   // POST /api/sessions/join-or-create
   router.post("/join-or-create", async (req: Request, res: Response) => {
-    console.log('req', req)
     const { playerId, playerDeck } = req.body as {
       playerId: string;
       playerDeck: PlayerDeck;
