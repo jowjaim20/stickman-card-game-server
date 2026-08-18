@@ -15,7 +15,7 @@ const app = express();
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
-  cors: { origin: "*", methods: ["GET", "POST"] },
+  cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 app.use(cors());
@@ -32,20 +32,27 @@ io.on("connection", (socket) => {
   // After joining, if the session is already "ready" (opponent joined while the
   // client was still connecting), push the current state directly to this socket
   // so Player 1 never misses the broadcast due to a timing race.
-  socket.on("join-session", async (sessionId: number) => {
-    await socket.join(`session:${sessionId}`);
-    console.log(`[socket] ${socket.id} → session:${sessionId}`);
+  socket.on(
+    "join-session",
+    async (sessionId: number, playerKey: "player_1" | "player_2") => {
+      await socket.join(`session:${sessionId}`);
+      console.log(`[socket] ${socket.id} → session:${sessionId}`);
 
-    const { data } = await supabase
-      .from("battle_sessions")
-      .select(SESSION_FIELDS)
-      .eq("id", sessionId)
-      .single();
+      if (playerKey === "player_2") {
+        const { data } = await supabase
+          .from("battle_sessions")
+          .select(SESSION_FIELDS)
+          .eq("id", sessionId)
+          .single();
 
-    if (data?.status === "ready") {
-      socket.emit("session:updated", data);
+        if (data?.status === "ready") {
+          io.to(`session:${sessionId}`).emit("receive:session", data);
+        }
+      }
     }
-  });
+  );
+
+  
 
   // Client leaves a battle session room
   socket.on("leave-session", (sessionId: number) => {

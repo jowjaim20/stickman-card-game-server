@@ -145,8 +145,8 @@ export const createSessionsRouter = (io: Server): Router => {
       playerId: string;
       playerDeck: PlayerDeck;
     };
-    console.log("playerDeck", playerDeck);
-    console.log("playerId", playerId);
+    // console.log("playerDeck", playerDeck);
+    // console.log("playerId", playerId);
     if (!playerId || !playerDeck) {
       res.status(400).json({ error: "playerId and playerDeck are required" });
       return;
@@ -221,10 +221,10 @@ export const createSessionsRouter = (io: Server): Router => {
         }
 
         // Broadcast to session room (player_1 is already listening there)
-        io.to(`session:${waiting.id}`).emit("session:updated", data);
+        // io.to(`session:${waiting.id}`).emit("session:updated", data);
         // Also notify via user rooms for the debug screen
-        io.to(`user:${waiting.player_1}`).emit("session:updated", data);
-        io.to(`user:${playerId}`).emit("session:updated", data);
+        // io.to(`user:${waiting.player_1}`).emit("session:updated", data);
+        // io.to(`user:${playerId}`).emit("session:updated", data);
 
         res.json({ session: data, role: "player_2" });
         return;
@@ -313,30 +313,12 @@ export const createSessionsRouter = (io: Server): Router => {
       return;
     }
 
-    io.to(`session:${id}`).emit("session:updated", data);
+    io.to(`session:${id}`).emit("receive:session", data);
     res.json(data);
   });
 
   // PATCH /api/sessions/:id/sequence  — append card_activated via DB trigger
-  router.patch("/:id/sequence", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id, 10);
-    const { newCard }: { newCard: CardActivated } = req.body;
-
-    const { data, error } = await supabase
-      .from("battle_sessions")
-      .update({ card_activated: [newCard] })
-      .eq("id", id)
-      .select(SELECT_FIELDS)
-      .single();
-
-    if (error) {
-      res.status(500).json({ error: error.message });
-      return;
-    }
-
-    io.to(`session:${id}`).emit("session:updated", data);
-    res.json(data);
-  });
+  // for remove
 
   // PATCH /api/sessions/:id/end
   router.patch("/:id/end", async (req: Request, res: Response) => {
