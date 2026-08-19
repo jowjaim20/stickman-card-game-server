@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
-import { createSessionsRouter } from "./routes/sessions";
+import { createSessionsRouter, CardActivated, GameData } from "./routes/sessions";
 import { supabase } from "./supabase";
 
 const SESSION_FIELDS =
@@ -62,6 +62,39 @@ io.on("connection", (socket) => {
     socket.join(`user:${userId}`);
     console.log(`[socket] ${socket.id} → user:${userId}`);
   });
+
+  socket.on(
+    "update:session",
+    async ({
+      id,
+      gameData,
+      activatedCard,
+      count
+    }: {
+      id: number;
+      gameData: GameData;
+      activatedCard: CardActivated;
+      count: number;
+    }) => {
+      const { data, error } = await supabase
+        .from("battle_sessions")
+        .update({
+          game_data: gameData,
+          card_activated: [activatedCard],
+          count
+        })
+        .eq("id", id)
+        .select(SESSION_FIELDS)
+        .single();
+
+      if (error) {
+        socket.emit("update:session:error", { error: error.message });
+        return;
+      }
+
+      io.to(`session:${id}`).emit("receive:session", data);
+    }
+  );
 
   socket.on("disconnect", () => {
     console.log(`[socket] disconnected ${socket.id}`);

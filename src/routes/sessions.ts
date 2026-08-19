@@ -47,7 +47,7 @@ type PlayerData = {
   game_state: never[];
 };
 
-type GameData = {
+export type GameData = {
   sequence: number;
   player_1: PlayerData;
   player_2: PlayerData;
@@ -60,13 +60,12 @@ type Card = {
   energy?: number;
 };
 
-type CardActivated = {
+export type CardActivated = {
   sequence: number;
   played_card: PlayerCard | null;
   player_key: "player_1" | "player_2" | null;
   targer_slot: number | null;
 };
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const extractIds = (deck: PlayerDeck | null): number[] =>
@@ -289,36 +288,6 @@ export const createSessionsRouter = (io: Server): Router => {
       res.status(500).json({ error: error.message });
       return;
     }
-    res.json(data);
-  });
-
-  // PATCH /api/sessions/:id/update  — card played, game_data changed
-  router.patch("/:id/update", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id, 10);
-    const {
-      gameData,
-      activatedCard,
-      count
-    }: { gameData: GameData; activatedCard: CardActivated; count: number } =
-      req.body;
-
-    const { data, error } = await supabase
-      .from("battle_sessions")
-      .update({
-        game_data: gameData,
-        card_activated: [activatedCard],
-        count
-      })
-      .eq("id", id)
-      .select(SELECT_FIELDS)
-      .single();
-
-    if (error) {
-      res.status(500).json({ error: error.message });
-      return;
-    }
-
-    io.to(`session:${id}`).emit("receive:session", data);
     res.json(data);
   });
 
