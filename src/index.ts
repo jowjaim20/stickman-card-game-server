@@ -45,14 +45,12 @@ io.on("connection", (socket) => {
           .eq("id", sessionId)
           .single();
 
-        if (data?.status === "ready") {
+        if (data?.status === "ready" && data.game_data?.sequence === 0) {
           io.to(`session:${sessionId}`).emit("receive:session", data);
         }
       }
     }
   );
-
-  
 
   // Client leaves a battle session room
   socket.on("leave-session", (sessionId: number) => {
