@@ -84,23 +84,27 @@ const buildDeckCards = (
   deck: PlayerDeck,
   playerOwner: number,
   cards: Card[]
-): PlayerCard[] =>
-  deck.flatMap((slot) =>
-    slot.cards.flatMap((card_id, cardIndex) => {
+): PlayerCard[] => {
+  return deck.flatMap((slot) => {
+    return slot.cards.flatMap((card_id, cardIndex) => {
       const user_card_id = slot.user_cards_id[cardIndex];
       if (card_id === null || user_card_id === null || slot.hero_id === null)
         return [];
+
+      const card = cards.find((c) => c.id === card_id);
       return [
         {
           card_id,
           user_card_id,
           card_suit_index: cardIndex + 2,
           player_owner: playerOwner,
-          hero_id: slot.hero_id
+          hero_id: slot.hero_id,
+          card
         }
       ];
-    })
-  );
+    });
+  });
+};
 
 const buildFieldCards = (deck: PlayerDeck, cards: Card[]): HeroCard[] =>
   deck.flatMap((slot, suitIndex) => {
@@ -119,7 +123,8 @@ const buildFieldCards = (deck: PlayerDeck, cards: Card[]): HeroCard[] =>
         is_cannot_take_action: false,
         buffs: [],
         debuffs: [],
-        status: { silence: false, stun: false, taunt: false, veil: false }
+        status: { silence: false, stun: false, taunt: false, veil: false },
+        card: hero
       }
     ];
   });
