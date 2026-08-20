@@ -160,7 +160,7 @@ export const createSessionsRouter = (io: Server): Router => {
       // Look for a waiting session not owned by this player
       const { data: waiting, error: fetchError } = await supabase
         .from("battle_sessions")
-        .select(SELECT_FIELDS)
+        .select("*")
         .eq("status", "waiting")
         .neq("player_1", playerId)
         .limit(1)
@@ -216,7 +216,7 @@ export const createSessionsRouter = (io: Server): Router => {
             count: (waiting.count ?? 0) + 1
           })
           .eq("id", waiting.id)
-          .select(SELECT_FIELDS)
+          .select("*")
           .single();
 
         if (error) {
@@ -262,7 +262,7 @@ export const createSessionsRouter = (io: Server): Router => {
           game_data,
           count: 1
         })
-        .select(SELECT_FIELDS)
+       .select("*")
         .single();
 
       if (error) {
@@ -280,7 +280,7 @@ export const createSessionsRouter = (io: Server): Router => {
   router.get("/:id", async (req: Request, res: Response) => {
     const { data, error } = await supabase
       .from("battle_sessions")
-      .select(SELECT_FIELDS)
+      .select("*")
       .eq("id", req.params.id)
       .single();
 

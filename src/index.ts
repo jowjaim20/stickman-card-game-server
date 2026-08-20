@@ -45,7 +45,7 @@ io.on("connection", (socket) => {
       if (playerKey === "player_2") {
         const { data } = await supabase
           .from("battle_sessions")
-          .select(SESSION_FIELDS)
+          .select("*")
           .eq("id", sessionId)
           .single();
 
@@ -88,7 +88,7 @@ io.on("connection", (socket) => {
           count
         })
         .eq("id", id)
-        .select(SESSION_FIELDS)
+        .select("*")
         .single();
 
       if (error) {
@@ -122,7 +122,7 @@ io.on("connection", (socket) => {
           player_turn: player_key
         })
         .eq("id", id)
-        .select(SESSION_FIELDS)
+        .select("*")
         .single();
 
       if (error) {
