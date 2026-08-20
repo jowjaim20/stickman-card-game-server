@@ -105,17 +105,21 @@ io.on("connection", (socket) => {
     async ({
       id,
       gameData,
-      count
+      count,
+      player_key
     }: {
       id: number;
       gameData: GameData;
       count: number;
+      player_key: string;
     }) => {
       const { data, error } = await supabase
         .from("battle_sessions")
         .update({
           game_data: gameData,
-          count
+          count,
+          phase: "prepare_end",
+          player_turn: player_key
         })
         .eq("id", id)
         .select(SESSION_FIELDS)
