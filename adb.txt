@@ -1,0 +1,5 @@
+6ER9K23C22001369        device
+emulator-5554
+
+adb -s 6ER9K23C22001369 tcp:8081 tcp:8081
+adb -s mulator-5554 tcp:8081 tcp:8081

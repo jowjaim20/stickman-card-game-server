@@ -3,7 +3,11 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
-import { createSessionsRouter, CardActivated, GameData } from "./routes/sessions";
+import {
+  createSessionsRouter,
+  CardActivated,
+  GameData
+} from "./routes/sessions";
 import { supabase } from "./supabase";
 
 const SESSION_FIELDS =
@@ -93,6 +97,36 @@ io.on("connection", (socket) => {
       }
 
       io.to(`session:${id}`).emit("receive:session", data);
+    }
+  );
+
+  socket.on(
+    "update:change_phase",
+    async ({
+      id,
+      gameData,
+      count
+    }: {
+      id: number;
+      gameData: GameData;
+      count: number;
+    }) => {
+      const { data, error } = await supabase
+        .from("battle_sessions")
+        .update({
+          game_data: gameData,
+          count
+        })
+        .eq("id", id)
+        .select(SESSION_FIELDS)
+        .single();
+
+      if (error) {
+        socket.emit("update:session:error", { error: error.message });
+        return;
+      }
+
+      io.to(`session:${id}`).emit("receive:change_phase", data);
     }
   );
 
