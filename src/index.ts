@@ -106,21 +106,27 @@ io.on("connection", (socket) => {
       id,
       gameData,
       count,
-      player_key
+      player_key,
+      phase,
+      player_turn
     }: {
       id: number;
       gameData: GameData;
       count: number;
       player_key: string;
+      phase: string;
+      player_turn: string;
     }) => {
+      const data1 = {
+        game_data: gameData,
+        count,
+        phase: phase,
+        player_turn
+      };
+      
       const { data, error } = await supabase
         .from("battle_sessions")
-        .update({
-          game_data: gameData,
-          count,
-          phase: "prepare_end",
-          player_turn: player_key
-        })
+        .update(data1)
         .eq("id", id)
         .select("*")
         .single();
