@@ -140,6 +140,14 @@ io.on("connection", (socket) => {
     }
   );
 
+  // Share completed effects without replaying the card or changing the turn.
+  socket.on("update:resolved_card", (result: {
+    id: number; gameData: GameData; sequence: number; player_turn: string; phase: string;
+  }) => {
+    if (!socket.rooms.has(`session:${result.id}`)) return;
+    socket.to(`session:${result.id}`).emit("receive:resolved_card", result);
+  });
+
   socket.on("disconnect", () => {
     console.log(`[socket] disconnected ${socket.id}`);
   });

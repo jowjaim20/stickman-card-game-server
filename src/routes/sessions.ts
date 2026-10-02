@@ -26,7 +26,7 @@ type HeroCard = {
   is_cannot_take_action: boolean;
   buffs: unknown[];
   debuffs: unknown[];
-  status: { silence: boolean; stun: boolean; taunt: boolean; veil: boolean };
+  status: { silence: boolean; stun: boolean; frozen: boolean; taunt: boolean; veil: boolean };
 };
 
 type PlayerCard = {
@@ -122,7 +122,7 @@ const buildFieldCards = (deck: PlayerDeck, cards: Card[]): HeroCard[] =>
         is_cannot_take_action: false,
         buffs: [],
         debuffs: [],
-        status: { silence: false, stun: false, taunt: false, veil: false },
+        status: { silence: false, stun: false, frozen: false, taunt: false, veil: false },
         card: hero
       }
     ];
