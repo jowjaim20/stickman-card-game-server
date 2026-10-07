@@ -22,6 +22,7 @@ export function createBattlePresence(io: Server, readSession: (id: number) => Pr
       if (!membership) return;
       const id = membership.id;
       membership = null;
+      delete socket.data.battleMembership;
       sessions.get(id)?.delete(socket.id);
       if (sessions.get(id)?.size === 0) sessions.delete(id);
       broadcast(id);
@@ -51,6 +52,7 @@ export function createBattlePresence(io: Server, readSession: (id: number) => Pr
           return;
         }
         membership = { id, playerKey };
+        socket.data.battleMembership = membership;
         pendingId = null;
         const members = sessions.get(id) ?? new Map<string, Member>();
         members.set(socket.id, { playerKey, active: true });

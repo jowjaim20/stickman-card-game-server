@@ -10,6 +10,7 @@ import {
 } from "./routes/sessions";
 import { supabase } from "./supabase";
 import { createBattlePresence } from "./battle-presence";
+import { persistResolvedCard, type ResolvedCardUpdate } from "./resolved-card";
 
 const SESSION_FIELDS =
   "id, created_at, user_id, game_data, card_activated, player_1, player_2, player_1_deck, player_2_deck, status, count";
@@ -122,12 +123,22 @@ io.on("connection", (socket) => {
     }
   );
 
-  // Share completed effects without replaying the card or changing the turn.
-  socket.on("update:resolved_card", (result: {
-    id: number; gameData: GameData; sequence: number; player_turn: string; phase: string;
-  }) => {
-    if (!socket.rooms.has(`session:${result.id}`)) return;
-    socket.to(`session:${result.id}`).emit("receive:resolved_card", result);
+  // Save completed effects before notifying clients or acknowledging the move.
+  socket.on("update:resolved_card", async (result: ResolvedCardUpdate, acknowledge?: (reply: { ok: boolean; error?: string }) => void) => {
+    const reply = (response: { ok: boolean; error?: string }) => {
+      if (typeof acknowledge === "function") acknowledge(response);
+      if (!response.ok) socket.emit("update:session:error", { error: response.error });
+    };
+    try {
+      if (!result || !socket.rooms.has(`session:${result.id}`)) {
+        reply({ ok: false, error: "Join the battle before saving a card" }); return;
+      }
+      const response = await persistResolvedCard(supabase, socket.data.battleMembership, result);
+      if (response.saved) io.to(`session:${result.id}`).emit("receive:resolved_card", response.saved);
+      reply(response);
+    } catch {
+      reply({ ok: false, error: "Could not save card effects" });
+    }
   });
 
   socket.on("disconnect", () => {

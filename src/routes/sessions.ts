@@ -48,6 +48,7 @@ type PlayerData = {
 };
 
 export type GameData = {
+  resolved_sequence?: number;
   sequence: number;
   player_1: PlayerData;
   player_2: PlayerData;
