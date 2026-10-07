@@ -9,6 +9,7 @@ import {
   GameData
 } from "./routes/sessions";
 import { supabase } from "./supabase";
+import { createBattlePresence } from "./battle-presence";
 
 const SESSION_FIELDS =
   "id, created_at, user_id, game_data, card_activated, player_1, player_2, player_1_deck, player_2_deck, status, count";
@@ -29,37 +30,16 @@ app.use("/api/sessions", createSessionsRouter(io));
 
 // ── Socket.io connection handling ─────────────────────────────────────────────
 
+const registerBattlePresence = createBattlePresence(io, async (id) => {
+  const { data, error } = await supabase.from("battle_sessions").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data;
+});
+
 io.on("connection", (socket) => {
   console.log(`[socket] connected  ${socket.id}`);
 
-  // Client joins a specific battle session room.
-  // After joining, if the session is already "ready" (opponent joined while the
-  // client was still connecting), push the current state directly to this socket
-  // so Player 1 never misses the broadcast due to a timing race.
-  socket.on(
-    "join-session",
-    async (sessionId: number, playerKey: "player_1" | "player_2") => {
-      await socket.join(`session:${sessionId}`);
-      console.log(`[socket] ${socket.id} → session:${sessionId}`);
-
-      if (playerKey === "player_2") {
-        const { data } = await supabase
-          .from("battle_sessions")
-          .select("*")
-          .eq("id", sessionId)
-          .single();
-
-        if (data?.status === "ready" && data.game_data?.sequence === 0) {
-          io.to(`session:${sessionId}`).emit("receive:session", data);
-        }
-      }
-    }
-  );
-
-  // Client leaves a battle session room
-  socket.on("leave-session", (sessionId: number) => {
-    socket.leave(`session:${sessionId}`);
-  });
+  registerBattlePresence(socket);
 
   // Client joins a user room (for the debug/battle-sessions screen)
   socket.on("join-user", (userId: string) => {
