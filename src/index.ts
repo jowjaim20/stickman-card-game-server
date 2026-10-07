@@ -88,11 +88,12 @@ io.on("connection", (socket) => {
           count
         })
         .eq("id", id)
+        .eq("status", "ready")
         .select("*")
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        socket.emit("update:session:error", { error: error.message });
+      if (error || !data) {
+        socket.emit("update:session:error", { error: error?.message ?? "Battle is no longer active" });
         return;
       }
 
@@ -128,11 +129,12 @@ io.on("connection", (socket) => {
         .from("battle_sessions")
         .update(data1)
         .eq("id", id)
+        .eq("status", "ready")
         .select("*")
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        socket.emit("update:session:error", { error: error.message });
+      if (error || !data) {
+        socket.emit("update:session:error", { error: error?.message ?? "Battle is no longer active" });
         return;
       }
 

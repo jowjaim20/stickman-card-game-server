@@ -216,6 +216,7 @@ export const createSessionsRouter = (io: Server): Router => {
             count: (waiting.count ?? 0) + 1
           })
           .eq("id", waiting.id)
+          .eq("status", "waiting")
           .select("*")
           .single();
 
@@ -296,20 +297,49 @@ export const createSessionsRouter = (io: Server): Router => {
 
   // PATCH /api/sessions/:id/end
   router.patch("/:id/end", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id, 10);
-
-    const { error } = await supabase
-      .from("battle_sessions")
-      .update({ status: "ended" })
-      .eq("id", id);
-
-    if (error) {
-      res.status(500).json({ error: error.message });
+    const id = Number(req.params.id);
+    const playerId = req.body?.playerId;
+    if (!Number.isInteger(id) || id <= 0 || typeof playerId !== "string" || !playerId) {
+      res.status(400).json({ error: "A battle ID and player ID are required" });
       return;
     }
-
-    io.to(`session:${id}`).emit("session:ended", { id });
-    res.json({ success: true });
+    try {
+      const { data: session, error: fetchError } = await supabase
+        .from("battle_sessions").select("*").eq("id", id).maybeSingle();
+      if (fetchError) { res.status(500).json({ error: fetchError.message }); return; }
+      if (!session) { res.status(404).json({ error: "Battle not found" }); return; }
+      if (playerId !== session.player_1 && playerId !== session.player_2) {
+        res.status(403).json({ error: "Only a battle participant can quit" });
+        return;
+      }
+      if (session.status === "ended") {
+        res.json({ success: true });
+        return;
+      }
+      const opponent = playerId === session.player_1 ? "player_2" : "player_1";
+      const result = { winner: session[opponent] ? opponent : null, reason: "quit" };
+      const { data: ended, error } = await supabase.from("battle_sessions")
+        .update({ status: "ended", game_data: { ...session.game_data, result } })
+        .eq("id", id).eq("status", session.status).select("*").maybeSingle();
+      if (error) { res.status(500).json({ error: error.message }); return; }
+      if (!ended) {
+        // A competing quit or matchmaking update won the race. Never report
+        // success unless this battle actually ended.
+        const { data: latest, error: latestError } = await supabase
+          .from("battle_sessions").select("status").eq("id", id).maybeSingle();
+        if (latestError) { res.status(500).json({ error: latestError.message }); return; }
+        if (latest?.status !== "ended") {
+          res.status(409).json({ error: "Battle changed. Please try quitting again." });
+          return;
+        }
+      } else {
+        io.to(`session:${id}`).emit("receive:session", ended);
+        io.to(`session:${id}`).emit("session:ended", { id, result: ended.game_data.result });
+      }
+      res.json({ success: true });
+    } catch {
+      res.status(500).json({ error: "Could not end battle. Please try again." });
+    }
   });
 
   return router;
